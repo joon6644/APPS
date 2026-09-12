@@ -1,0 +1,52 @@
+{
+  // F5 로 디버거를 붙여 실행한다. 에이전트 노드에 중단점을 걸고 상태를 들여다볼 때 쓴다.
+  // 그냥 실행만 할 거라면 Ctrl+Shift+B (tasks.json) 가 더 가볍다.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "AI Debate Judge: 웹앱 (디버그)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "streamlit",
+      "args": ["run", "${workspaceFolder}/debate_agent/app.py"],
+      "cwd": "${workspaceFolder}/debate_agent",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "env": { "PYTHONIOENCODING": "utf-8" },
+      "console": "integratedTerminal",
+      // Streamlit 은 스크립트를 매 상호작용마다 다시 실행한다.
+      // justMyCode=false 로 두어야 라이브러리 경계를 넘는 중단점도 잡힌다.
+      "justMyCode": false
+    },
+    {
+      "name": "AI Debate Judge: CLI 분석 (디버그)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/debate_agent/run_debate.py",
+      "args": ["${input:question}"],
+      "cwd": "${workspaceFolder}/debate_agent",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "env": { "PYTHONIOENCODING": "utf-8" },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "AI Debate Judge: 테스트 (디버그)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/debate_agent/tests/test_system.py",
+      "cwd": "${workspaceFolder}/debate_agent",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "env": { "PYTHONIOENCODING": "utf-8" },
+      "console": "integratedTerminal",
+      "justMyCode": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "question",
+      "type": "promptString",
+      "description": "분석할 질문을 입력하세요",
+      "default": "재택근무가 사무실 출근보다 생산적인가?"
+    }
+  ]
+}

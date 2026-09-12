@@ -1,0 +1,88 @@
+{
+  // AI Debate Judge 실행 작업
+  //
+  //   Ctrl+Shift+B            웹앱 실행 (기본 빌드 작업)
+  //   Ctrl+Shift+P -> Tasks: Run Task    나머지 작업 선택
+  //
+  // 스크립트 경로는 워크스페이스를 APPS 로 열었든 debate_agent 로 열었든
+  // 둘 다 동작하도록 두 후보 경로 중 존재하는 쪽을 고른다.
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "AI Debate Judge: 웹앱 실행",
+      "detail": "서버를 띄우고 준비되면 브라우저를 연다 (http://localhost:8501)",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& (@('debate_agent/run.ps1','run.ps1') | Where-Object { Test-Path $_ } | Select-Object -First 1)"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "build", "isDefault": true },
+      "isBackground": true,
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Debate Judge: 브라우저 열기",
+      "detail": "이미 실행 중인 서버를 VS Code 안에서 연다 (Simple Browser)",
+      "command": "${input:openInSimpleBrowser}",
+      "type": "shell",
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Debate Judge: 테스트",
+      "detail": "시스템 불변식 테스트 (LLM 호출 없음, API 비용 0)",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& (@('debate_agent/run.ps1','run.ps1') | Where-Object { Test-Path $_ } | Select-Object -First 1) -Test"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "AI Debate Judge: 터미널에서 질문 분석",
+      "detail": "웹 없이 터미널에서 한 번 분석한다 (LLM 호출 6회 발생)",
+      "type": "process",
+      "command": "powershell",
+      "args": [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "& (@('debate_agent/run.ps1','run.ps1') | Where-Object { Test-Path $_ } | Select-Object -First 1) -Ask '${input:question}'"
+      ],
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "question",
+      "type": "promptString",
+      "description": "분석할 질문을 입력하세요",
+      "default": "청년피자와 처갓집 슈프림양념치킨 중 저녁으로 뭐가 더 나을까?"
+    },
+    {
+      "id": "openInSimpleBrowser",
+      "type": "command",
+      "command": "simpleBrowser.show",
+      "args": ["http://localhost:8501"]
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  // 이 워크스페이스의 Python 은 APPS\.venv 를 쓴다.
+  // 이 설정이 있어야 편집기의 자동완성과 임포트 해석이 프로젝트 패키지를 찾는다.
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+  "python.analysis.extraPaths": ["${workspaceFolder}/debate_agent"],
+  "python.terminal.activateEnvironment": true,
+
+  // 터미널이 열릴 때 가상환경이 자동 활성화되므로
+  // 통합 터미널에서 바로 `streamlit run app.py` 를 쓸 수 있다.
+  "terminal.integrated.cwd": "${workspaceFolder}",
+
+  "files.exclude": {
+    "**/__pycache__": true,
+    "**/*.pyc": true
+  }
+}
