@@ -400,6 +400,3 @@ SIDES = (
 - 검증 점수는 각 논증을 독립 평가한 AI 의 **보조 지표**이며 객관적 측정값이 아닙니다.
   최종 판정은 점수 합계가 아니라 논증의 내용으로 결정됩니다.
 - 분석 1회당 LLM 호출 6회가 발생합니다 (`gpt-4o-mini` 기준 수 원 수준).
-
-cd C:\Workspace\APPS\debate_agent
-C:\Workspace\APPS\.venv\Scripts\streamlit.exe run app.py
