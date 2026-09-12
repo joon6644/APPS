@@ -14,3 +14,6 @@ if errorlevel 1 (
     echo.
     pause
 )
+
+rem cd C:\Workspace\APPS\debate_agent
+rem C:\Workspace\APPS\.venv\Scripts\streamlit.exe run app.py
