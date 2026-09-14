@@ -103,20 +103,78 @@ if ($Ask) {
     exit $LASTEXITCODE
 }
 
-# --- 이미 실행 중이면 브라우저만 열고 끝낸다 --------------------------
-$url = "http://localhost:8501"
-$alreadyRunning = $null -ne (
-    Get-NetTCPConnection -LocalPort 8501 -State Listen -ErrorAction SilentlyContinue
-)
+# --- 포트 정리: 언제나 새 서버를 띄운다 -------------------------------
+# 낡은 서버를 재사용하면 그 프로세스가 시작될 때의 .env / 코드를 그대로 들고
+# 있으므로, 키를 채우거나 코드를 고쳐도 화면에 반영되지 않는다.
+# 따라서 이전 서버를 정리하고 새로 띄운다. 정리할 수 없으면(다른 프로그램이
+# 쓰는 포트인 경우) 비어 있는 다른 포트를 찾아 그쪽으로 띄운다.
 
-if ($alreadyRunning) {
-    Write-Step "이미 실행 중입니다. 브라우저를 엽니다."
-    Write-Host "  주소: " -NoNewline
-    Write-Host $url -ForegroundColor Green
-    Write-Host ""
-    Start-Process $url
-    exit 0
+$preferredPort = 8501
+$portScanRange = 20
+$appPath = Join-Path $root "app.py"
+
+function Get-PortOwner($port) {
+    $conn = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+    if ($null -eq $conn) { return $null }
+    return @($conn)[0].OwningProcess
 }
+
+function Get-OurServerProcesses {
+    # 명령줄에 이 프로젝트의 app.py 가 들어 있는 프로세스 = 우리가 띄운 서버.
+    # streamlit 은 자식 프로세스를 함께 띄우므로 여러 개가 잡힐 수 있다.
+    $found = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+        $_.CommandLine -and $_.CommandLine.Contains($appPath) -and $_.ProcessId -ne $PID
+    }
+    return @($found)
+}
+
+function Clear-Port($port) {
+    # 포트를 비웠으면 $true, 남의 프로세스라 건드리지 않았으면 $false.
+    $owner = Get-PortOwner $port
+    $ours = Get-OurServerProcesses
+
+    if ($null -eq $owner -and $ours.Count -eq 0) { return $true }
+
+    if ($null -ne $owner) {
+        $ownerIsOurs = $ours | Where-Object { $_.ProcessId -eq $owner }
+        if ($null -eq $ownerIsOurs) {
+            Write-Host "  포트 $port 를 다른 프로그램이 쓰고 있습니다." -ForegroundColor DarkGray
+            return $false
+        }
+    }
+
+    Write-Step "이전 서버를 정리합니다."
+    foreach ($proc in $ours) {
+        # $ErrorActionPreference = "Stop" 이므로 네이티브 명령 실패가 스크립트를
+        # 중단시키지 않도록 감싼다. 이미 죽은 자식 프로세스일 수 있다.
+        try { & taskkill /PID $proc.ProcessId /T /F | Out-Null } catch {}
+    }
+
+    for ($i = 0; $i -lt 20; $i++) {
+        if ($null -eq (Get-PortOwner $port)) { return $true }
+        Start-Sleep -Milliseconds 250
+    }
+    return $false
+}
+
+$port = $preferredPort
+if (-not (Clear-Port $preferredPort)) {
+    $port = $null
+    foreach ($candidate in ($preferredPort + 1)..($preferredPort + $portScanRange)) {
+        if ($null -eq (Get-PortOwner $candidate)) {
+            $port = $candidate
+            break
+        }
+    }
+    if ($null -eq $port) {
+        Write-Fail "빈 포트를 찾지 못했습니다 ($preferredPort~$($preferredPort + $portScanRange))."
+        Write-Host "  포트를 쓰는 프로그램을 닫고 다시 실행해 주세요." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Step "포트 $port 로 새 서버를 띄웁니다."
+}
+
+$url = "http://localhost:$port"
 
 # --- 실행 ------------------------------------------------------------
 Write-Host "  주소: " -NoNewline
@@ -144,7 +202,7 @@ $opener = Start-Job -ArgumentList $url -ScriptBlock {
 }
 
 try {
-    & $py -m streamlit run (Join-Path $root "app.py")
+    & $py -m streamlit run $appPath --server.port $port
 } finally {
     Stop-Job $opener -ErrorAction SilentlyContinue
     Remove-Job $opener -Force -ErrorAction SilentlyContinue
